@@ -1,0 +1,54 @@
+name: Update Taiwan Debt Data
+
+on:
+  # 可以手動執行
+  workflow_dispatch:
+
+  # 每天台灣時間上午 9:15 與下午 5:15 自動更新
+  schedule:
+    - cron: "15 1,9 * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  update-debt:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # 1. 下載目前 GitHub 專案
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. 安裝 Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # 3. 安裝 Python 套件
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 4. 執行國債資料更新程式
+      - name: Update debt data
+        run: |
+          python update_debt.py
+
+      # 5. 如果 debt.json 有變化，就自動存回 GitHub
+      - name: Commit updated data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add docs/debt.json
+
+          if git diff --cached --quiet; then
+            echo "國債資料沒有變化，不需要更新。"
+          else
+            git commit -m "Update debt data"
+            git push
+          fi
