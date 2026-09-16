@@ -12,6 +12,10 @@ import gspread
 from google.oauth2.service_account import Credentials
 
 
+# ==============================
+# 關閉 SSL 警告
+# ==============================
+
 urllib3.disable_warnings(
     urllib3.exceptions.InsecureRequestWarning
 )
@@ -30,7 +34,7 @@ SHEET_NAME = "國債資料"
 
 
 # ==============================
-# 抓取國庫署網頁
+# 抓取財政部國庫署網頁
 # ==============================
 
 response = requests.get(
@@ -71,12 +75,12 @@ if not debt_paragraphs:
     )
 
 
-# 官方第一筆就是最新資料
+# 國庫署頁面第一筆即最新資料
 latest = debt_paragraphs[0]
 
 
 # ==============================
-# 解析最新資料
+# 解析最新一筆國債資料
 # ==============================
 
 pattern = re.compile(
@@ -191,7 +195,7 @@ if not spreadsheet_id:
 
 
 # ==============================
-# 登入 Google Sheets
+# Service Account 登入
 # ==============================
 
 credentials_info = json.loads(
@@ -217,6 +221,10 @@ client = gspread.authorize(
 )
 
 
+# ==============================
+# 開啟 Google Sheet
+# ==============================
+
 spreadsheet = client.open_by_key(
     spreadsheet_id
 )
@@ -228,16 +236,20 @@ worksheet = spreadsheet.worksheet(
 
 
 # ==============================
-# 讀取目前 Sheet
+# 讀取目前工作表資料
 # ==============================
 
 rows = worksheet.get_all_records()
 
 
-# 建立 key → 列號 對照
-# 第 1 列是表頭，所以資料從第 2 列開始
+# 建立：
+# key → Google Sheet 列號
+#
+# 第一列是表頭
+# 所以資料從第二列開始
 
 key_to_row = {}
+
 
 for index, row in enumerate(
     rows,
@@ -257,6 +269,7 @@ for index, row in enumerate(
 # ==============================
 
 updates = {
+
     "central_total": {
         "value": data["total"],
         "unit": "億元"
@@ -276,64 +289,101 @@ updates = {
         "value": data["per_capita"],
         "unit": "萬元"
     }
+
 }
 
 
 # ==============================
-# 更新 Sheet
+# 更新 Google Sheet
 # ==============================
 
 for key, item in updates.items():
 
     if key not in key_to_row:
+
         print(
             f"找不到 key：{key}，跳過"
         )
+
         continue
+
 
     row_number = key_to_row[key]
 
+
+    # --------------------------
     # C欄：數值
+    # --------------------------
+
     worksheet.update_cell(
         row_number,
         3,
         item["value"]
     )
 
+
+    # --------------------------
     # D欄：單位
+    # --------------------------
+
     worksheet.update_cell(
         row_number,
         4,
         item["unit"]
     )
 
+
+    # --------------------------
     # E欄：資料日期
+    #
+    # 前面加 '，強制 Google Sheets
+    # 將民國日期視為文字
+    #
+    # 避免：
+    # 115年09月11日
+    # 被自動改成
+    # 0115年09月11日
+    # --------------------------
+
     worksheet.update_cell(
         row_number,
         5,
-        data["date"]
+        "'" + data["date"]
     )
 
+
+    # --------------------------
     # F欄：更新方式
+    # --------------------------
+
     worksheet.update_cell(
         row_number,
         6,
         "自動"
     )
 
+
+    # --------------------------
     # G欄：資料來源
+    # --------------------------
+
     worksheet.update_cell(
         row_number,
         7,
         "財政部國庫署"
     )
 
+
+    # --------------------------
     # H欄：來源網址
+    # --------------------------
+
     worksheet.update_cell(
         row_number,
         8,
         SOURCE_URL
     )
+
 
     print(
         f"已更新：{key}"
@@ -341,8 +391,7 @@ for key, item in updates.items():
 
 
 # ==============================
-# 額外輸出 debt.json
-# 保留原本 GitHub Pages 用途
+# 保留 GitHub Pages JSON
 # ==============================
 
 os.makedirs(
@@ -365,5 +414,14 @@ with open(
     )
 
 
-print("Google Sheet 更新完成")
-print("docs/debt.json 更新完成")
+# ==============================
+# 完成
+# ==============================
+
+print(
+    "Google Sheet 更新完成"
+)
+
+print(
+    "docs/debt.json 更新完成"
+)
