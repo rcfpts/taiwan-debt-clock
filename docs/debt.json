@@ -1,10 +1,10 @@
 {
   "success": true,
-  "date": "115年10月08日",
+  "date": "115年10月16日",
   "long_term": 58664,
-  "short_term": 1000,
-  "total": 59664,
-  "per_capita": 25.7,
+  "short_term": 700,
+  "total": 59364,
+  "per_capita": 25.6,
   "source": "https://www.nta.gov.tw/singlehtml/17?cntId=nta_7906_17",
-  "checked_at": "2026-10-21T13:59:03.312228+08:00"
+  "checked_at": "2026-10-21T22:27:32.943834+08:00"
 }
